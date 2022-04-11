@@ -1,0 +1,10 @@
+#!/bin/sh
+'''exec' "/Users/christianmueller/Library/Mobile Documents/com~apple~CloudDocs/Studies/Academic/5. MSc CS/2022/2022.1/7. DLMDSEDE02 Project Data Engineering/4. Assignments/Deliverables/DLMDSEDE02-project-cmueller/luigi-venv/bin/python" "$0" "$@"
+' '''
+# -*- coding: utf-8 -*-
+import re
+import sys
+from pygments.cmdline import main
+if __name__ == '__main__':
+    sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
+    sys.exit(main())
