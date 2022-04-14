@@ -4,6 +4,7 @@ from sqlalchemy import create_engine
 from get_data_db import get_data_db
 import luigi.contrib.postgres
 
+#========================================EXTRACT========================================
 
 class extract_data(luigi.Task):
 
@@ -20,6 +21,10 @@ class extract_data(luigi.Task):
     def output(self):
         return(luigi.contrib.postgres.PostgresTarget('localhost','zomato','postgres','31101997','zomato_dataset','1'))
 
+#=======================================================================================
+
+
+#========================================TRANSFORM========================================
 class transform_data(luigi.Task):
 
     def output(self):
@@ -111,6 +116,9 @@ class transform_data(luigi.Task):
         
         dataset.to_csv(r'/Users/macbookpro/Documents/ETL_Proj_Zomato/records_2.csv', index = False)
 
+#=======================================================================================
+
+#========================================LOAD========================================
 
 class load_data(luigi.Task):
     def requires(self):
@@ -129,6 +137,12 @@ class load_data(luigi.Task):
     def output(self):
         return(luigi.contrib.postgres.PostgresTarget('localhost','zomato_clean','postgres','31101997','zomato_dataset_clean','1'))
 
+#=======================================================================================
+
+
+#========================================RUN PIPELINE========================================
 
 if __name__ == '__main__':
     luigi.run()
+    
+#=======================================================================================

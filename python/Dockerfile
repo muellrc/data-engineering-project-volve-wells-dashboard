@@ -1,11 +1,13 @@
 FROM python
 
 RUN pip install luigi
-
 RUN pip install psycopg2-binary
+RUN pip install pandas
+RUN pip install sqlalchemy
+RUN pip install lxml
+RUN pip install requests
+RUN mkdir app
+COPY . app
+RUN cd app
 
-RUN mkdir -p /home/app
-
-COPY . /home/app
-
-CMD ["python", "/home/app/workflow.py"]
+CMD ["python -m luigi --module workflow extract_data --local-scheduler"]
