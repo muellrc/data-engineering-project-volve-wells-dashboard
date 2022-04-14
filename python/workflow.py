@@ -1,6 +1,5 @@
 import luigi
 
-
 class HelloLuigi(luigi.Task):
 
     def output(self):
