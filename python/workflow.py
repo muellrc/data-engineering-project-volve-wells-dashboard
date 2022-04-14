@@ -152,12 +152,12 @@ class transform_data_trajectories(luigi.Task):
                             # create a dataframe and save the dataframe as csv file
                             if md:
                                 wellpath = pd.DataFrame(list(zip(key, md, azimuth, inclination)), columns=[
-                                                        'Wellbore', 'Measured Depth', 'Azimuth', 'Inclination'])
+                                                        'Wellbore', 'MeasuredDepth', 'Azimuth', 'Inclination'])
                                 wellpath.sort_values(
-                                    'Measured Depth', inplace=True)
+                                    'MeasuredDepth', inplace=True)
                                 wellpath = wellpath.reset_index(drop=True)
                                 wellpath = wellpath.round(
-                                    {'Measured Depth': 0, 'Azimuth': 2, 'Inclination': 2})
+                                    {'MeasuredDepth': 0, 'Azimuth': 2, 'Inclination': 2})
                                 wellpath.to_csv(
                                     'trajectories.csv', sep=';', index=False)
 
@@ -184,7 +184,7 @@ class load_data_wellbores(luigi.Task):
         )
 
     def output(self):
-        return(luigi.contrib.postgres.PostgresTarget('dev-postgres-db', 'wellbores_clean', 'postgres', 'postgres', 'wellbores_clean', '1'))
+        return(luigi.contrib.postgres.PostgresTarget('dev-postgres-db', 'postgres', 'postgres', 'postgres', 'wellbores_clean', '1'))
 
 # Step 2: Trajectories
 
@@ -206,7 +206,7 @@ class load_data_trajectories(luigi.Task):
         )
 
     def output(self):
-        return(luigi.contrib.postgres.PostgresTarget('dev-postgres-db', 'trajectories_clean', 'postgres', 'postgres', 'trajectories_clean', '1'))
+        return(luigi.contrib.postgres.PostgresTarget('dev-postgres-db', 'postgres', 'postgres', 'postgres', 'trajectories_clean', '1'))
 
 # =======================================================================================
 
