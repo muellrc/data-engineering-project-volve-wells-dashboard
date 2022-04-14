@@ -174,7 +174,7 @@ class load_data_wellbores(luigi.Task):
     def run(self):
         data = pd.read_csv('wellbores.csv')
         engine = create_engine(
-            'postgresql://postgres:postgres@localhost:5432/wellbores_clean')
+            'postgresql://postgres:postgres@dev-postgres-db:5432/wellbores_clean')
 
         data.to_sql(
             'wellbores_clean',
@@ -184,7 +184,7 @@ class load_data_wellbores(luigi.Task):
         )
 
     def output(self):
-        return(luigi.contrib.postgres.PostgresTarget('localhost', 'wellbores_clean', 'postgres', 'postgres', 'wellbores_clean', '1'))
+        return(luigi.contrib.postgres.PostgresTarget('dev-postgres-db', 'wellbores_clean', 'postgres', 'postgres', 'wellbores_clean', '1'))
 
 # Step 2: Trajectories
 
@@ -196,7 +196,7 @@ class load_data_trajectories(luigi.Task):
     def run(self):
         data = pd.read_csv('trajectories.csv')
         engine = create_engine(
-            'postgresql://postgres:postgres@localhost:5432/trajectories_clean')
+            'postgresql://postgres:postgres@dev-postgres-db:5432/trajectories_clean')
 
         data.to_sql(
             'trajectories_clean',
@@ -206,7 +206,7 @@ class load_data_trajectories(luigi.Task):
         )
 
     def output(self):
-        return(luigi.contrib.postgres.PostgresTarget('localhost', 'trajectories_clean', 'postgres', 'postgres', 'trajectories_clean', '1'))
+        return(luigi.contrib.postgres.PostgresTarget('dev-postgres-db', 'trajectories_clean', 'postgres', 'postgres', 'trajectories_clean', '1'))
 
 # =======================================================================================
 
