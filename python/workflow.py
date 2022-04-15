@@ -14,7 +14,7 @@ import requests
 class extract_data(luigi.Task):
     def run(self):
 
-        filenames = ['source-files/Volve F.edm.1.xml', 'source-files/Volve F.edm.2.xml', 'source-files/Volve F.edm.3.xml']
+        filenames = ['app/source-files/VolveF.edm.1.xml', 'app/source-files/VolveF.edm.2.xml', 'app/source-files/VolveF.edm.3.xml']
         with self.output().open(mode="w") as f:
             for fname in filenames:
                  with open(fname) as infile:
@@ -42,7 +42,7 @@ class transform_data_wellbores(luigi.Task):
 
         # parse EDM xml file
         p = XMLParser(huge_tree=True)
-        with self.input().open('r') as infile:
+        with self.input().open() as infile:
             tree = parse(infile, parser=p)
             root = tree.getroot()
 
