@@ -12,44 +12,16 @@ import requests
 
 
 class extract_data(luigi.Task):
-
-    def output(self):
-        return(luigi.local_target("Volve F.edm.xml"))
-
     def run(self):
 
-        def get_confirm_token(response):
-            for key, value in response.cookies.items():
-                if key.startswith('download_warning'):
-                    return value
-            return None
-
-        def save_response_content(response):
-            CHUNK_SIZE = 32768
-            # Write the downloaded XML to the Luigi output destination for the Extract step
-            with self.output().open('w') as f:
-                for chunk in response.iter_content(CHUNK_SIZE):
-                    if chunk:
-                        f.write(chunk)
-
-        def download_file_from_google_drive(id):
-            URL = "https://drive.google.com/uc?export=download&confirm=yTib"
-
-            session = requests.Session()
-
-            response = session.get(URL, params={'id': id}, stream=True)
-            token = get_confirm_token(response)
-
-            if token:
-                params = {'id': id, 'confirm': token}
-                response = session.get(URL, params=params, stream=True)
-
-            save_response_content(response)
-
-        # Download EDM xml file from Google Drive
-
-        file_id = '1HubrQY1zUw_vDflNvXnhKgv5bJXQZ9kd'
-        download_file_from_google_drive(file_id)
+        filenames = ['source-files/Volve F.edm.1.xml', 'source-files/Volve F.edm.2.xml', 'source-files/Volve F.edm.3.xml']
+        with self.output().open(mode="w") as f:
+            for fname in filenames:
+                 with open(fname) as infile:
+                    for line in infile:
+                        f.write(line)
+    def output(self):
+        return luigi.LocalTarget(self.task_id + ".xml")
 
 
 # =======================================================================================
