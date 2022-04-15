@@ -195,7 +195,7 @@ class load_data_wellbores(luigi.Task):
         with self.input().open() as f:
             data = pd.read_csv(f)
             engine = create_engine(
-                'postgresql://postgres:postgres@dev-postgres-db:5432/wellbores_clean')
+                'postgresql://postgres:postgres@dev-postgres-db:5432/postgres')
 
             data.to_sql(
                 'wellbores_clean',
@@ -216,7 +216,7 @@ class load_data_trajectories(luigi.Task):
         with self.input().open() as f:
             data = pd.read_csv(f)
             engine = create_engine(
-                'postgresql://postgres:postgres@dev-postgres-db:5432/trajectories_clean')
+                'postgresql://postgres:postgres@dev-postgres-db:5432/postgres')
 
         data.to_sql(
             'trajectories_clean',
