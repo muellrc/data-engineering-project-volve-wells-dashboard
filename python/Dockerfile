@@ -7,4 +7,4 @@ RUN pip install lxml
 RUN pip install requests
 RUN mkdir app
 COPY . app
-CMD PYTHONPATH='./app' luigi --module workflow load_data_wellbores --local-scheduler
+CMD PYTHONPATH='./app' luigi --module workflow workflow --local-scheduler

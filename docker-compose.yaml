@@ -13,6 +13,8 @@ services:
     - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
   dev-luigi-python:
     build: python
+    depends_on: 
+      - dev-postgres-db
   dev-grafana:
     image: grafana/grafana
 volumes:
