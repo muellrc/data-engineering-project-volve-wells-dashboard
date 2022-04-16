@@ -17,7 +17,7 @@ import os
 
 class extract_data_wellbores(luigi.Task):
     def run(self):
-
+        # Read source data (EDM Database Export) as one XML file instead of the intermediate files
         filenames = ['app/source-files/VolveF.edm.1.xml', 'app/source-files/VolveF.edm.2.xml', 'app/source-files/VolveF.edm.3.xml', 
         'app/source-files/VolveF.edm.4.xml', 'app/source-files/VolveF.edm.5.xml', 'app/source-files/VolveF.edm.6.xml']
         with self.output().open(mode="w") as f:
@@ -30,10 +30,8 @@ class extract_data_wellbores(luigi.Task):
 
 @requires(extract_data_wellbores)
 class transform_data_wellbores(luigi.Task):
-    """Step 1: Wells"""
-
     def run(self):
-
+        # parse EDM XML file
         with self.input().open() as f:
             p = XMLParser(huge_tree=True)
             tree = parse(f, parser=p)
@@ -42,24 +40,24 @@ class transform_data_wellbores(luigi.Task):
         # create list to hold Wellbores
         wellbore_id = []
 
-        # get actual surveys for valid wellbores
-        for child in root:
-            if child.tag == 'CD_DEFINITIVE_SURVEY_HEADER':
-                if child.attrib['phase'] == 'ACTUAL':
-                    wellbore_id.append(child.attrib['wellbore_id'])
+        # get only actual surveys for valid wellbores
+        for child_node in root:
+            if child_node.tag == 'CD_DEFINITIVE_SURVEY_HEADER':
+                if child_node.attrib['phase'] == 'ACTUAL':
+                    wellbore_id.append(child_node.attrib['wellbore_id'])
 
-        # create a list of wellbore names for the ids found
+        # create a list of wellbore legal names for the ids identified based on CD_WELLBORE table in EDM
         wellbore_name = []
-
-        for child in root:
-            if child.tag == 'CD_WELLBORE':
-                if child.attrib['wellbore_id'] in wellbore_id:
+        for child_node in root:
+            if child_node.tag == 'CD_WELLBORE':
+                if child_node.attrib['wellbore_id'] in wellbore_id:
                     wellbore_name.append(
-                        child.attrib['well_legal_name'].replace('/', '-'))
+                        child_node.attrib['well_legal_name'].replace('/', '-'))
 
-        # make a dictionary holding wellbore ids as keys and wellbore names as values
+        # make a dictionary of wellbore ids and names
         id_name_dict = dict(zip(wellbore_id, wellbore_name))
 
+        # write data to luigi output
         wellbores = pd.DataFrame(
             list(id_name_dict.items()), columns=['wellbore_key', 'wellbore_name'])
         list_wellbores = wellbores.values.tolist()
@@ -78,11 +76,13 @@ class load_data_wellbores(luigi.Task):
     def run(self):
 
         with self.input().open() as f:
-
+            
+            # read tsv file holding valid Wellbores
             reader = csv.reader(f,delimiter="\t")
+            # create dataframe
             wellbores = pd.DataFrame(
             reader, columns=['wellbore_key', 'wellbore_name'])
-
+            # write to postgres
             engine = create_engine(
                 'postgresql://postgres:postgres@dev-postgres-db:5432/postgres')
             wellbores.to_sql(
