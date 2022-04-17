@@ -12,10 +12,7 @@ import csv
 import psycopg2
 import os
 
-
-# ========================================WELLBORES========================================
-
-class extract_data_wellbores(luigi.Task):
+class extract_data(luigi.Task):
     def run(self):
         # Read source data (EDM Database Export) as one XML file instead of the intermediate files
         filenames = ['app/source-files/VolveF.edm.1.xml', 'app/source-files/VolveF.edm.2.xml', 'app/source-files/VolveF.edm.3.xml', 
@@ -28,7 +25,63 @@ class extract_data_wellbores(luigi.Task):
     def output(self):
         return luigi.LocalTarget(self.task_id + ".xml")
 
-@requires(extract_data_wellbores)
+
+      
+# ========================================WELLS========================================
+
+@requires(extract_data)
+class transform_data_wells(luigi.Task):
+    def run(self):
+        # parse EDM XML file
+        with self.input().open() as f: 
+            p = XMLParser(huge_tree=True) 
+            tree = parse(f, parser=p) 
+            root = tree.getroot() 
+
+            # RETURN LIST OF ATTRIBUTE DICTIONARIES
+            result_values = [dict(n.attrib) for n in root.findall(".//CD_WELL")]
+
+            # RETRIEVE UNIQUE KEYS FOR COLUMN HEADERS
+            keys = list({k for dct in result_values for k in dct})
+
+        with self.output().open(mode="w") as f:
+            # WRITE TO CSV VIA DICTWRITER
+            dw = csv.DictWriter(f, fieldnames=keys)
+            dw.writeheader()
+            dw.writerows(result_values)
+
+    def output(self):
+        return luigi.LocalTarget(self.task_id + ".csv")
+
+
+@requires(transform_data_wells)
+class load_data_wells(luigi.Task):
+
+    def run(self):
+
+        with self.input().open() as f:
+            
+            wells = pd.read_csv(f) 
+
+            # write to postgres
+            engine = create_engine(
+                'postgresql://postgres:postgres@dev-postgres-db:5432/postgres')
+            wells.to_sql(
+                'wells_clean',
+                engine,
+                index=False,
+                if_exists='replace'
+            )
+
+    def output(self):
+        return(luigi.contrib.postgres.PostgresTarget('dev-postgres-db', 'postgres', 'postgres', 'postgres', 'wells_clean', '1'))
+
+# ==================================END OF WELLBORES==========================================
+
+        
+# ========================================WELLBORES========================================
+
+@requires(extract_data)
 class transform_data_wellbores(luigi.Task):
     def run(self):
         # parse EDM XML file
@@ -76,7 +129,6 @@ class load_data_wellbores(luigi.Task):
     def run(self):
 
         with self.input().open() as f:
-            
             # read tsv file holding valid Wellbores
             reader = csv.reader(f,delimiter="\t")
             # create dataframe
@@ -95,9 +147,6 @@ class load_data_wellbores(luigi.Task):
     def output(self):
         return(luigi.contrib.postgres.PostgresTarget('dev-postgres-db', 'postgres', 'postgres', 'postgres', 'wellbores_clean', '1'))
 
-
-
-
 # ==================================END OF WELLBORES==========================================
 
 
@@ -105,15 +154,14 @@ class load_data_wellbores(luigi.Task):
 
 # ========================================RUN PIPELINE========================================
 
-
 class workflow(luigi.Task):
     def run(self):
     #RunPipelines
 
         #1 - Wellbores
-        luigi.build([load_data_wellbores()])
+        #luigi.build([load_data_wellbores()])
 
         #2 - Trajectories
-        #luigi.build([load_data_trajectories()])
+        luigi.build([load_data_wells()])
 
 # =======================================================================================

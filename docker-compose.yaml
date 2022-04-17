@@ -15,7 +15,7 @@ services:
     build: python
     depends_on: 
       - dev-postgres-db
-  dev-grafana:
-    image: grafana/grafana
+  #dev-grafana:
+  #  image: grafana/grafana
 volumes:
   postgres-data:
