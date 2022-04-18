@@ -10,11 +10,17 @@ services:
     - type: volume
       source: postgres-data
       target: /var/lib/postgresql/data
-    - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   dev-luigi-python:
     build: python
     depends_on: 
-      - dev-postgres-db
+      dev-postgres-db:
+        condition: service_healthy
   #dev-grafana:
   #  image: grafana/grafana
 volumes:
