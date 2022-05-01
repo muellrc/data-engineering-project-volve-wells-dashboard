@@ -26,4 +26,18 @@ Step 2: docker-compose up <br />
 Step 3: Monitor the status updates from luigi until the workflow is executed <br />
 Step 4: Open the Grafana dashboard in http://127.0.0.1:8080/d/aJotvZlnk/wells?orgId=1
 
+## Components:
+
+The following containers are used to provide the functionality described above:
+
+- dev-postgres-db: Container based on a standard postgres Docker image, with an initialisation script that creates the tables production_data, wells_data and wellbores_data.
+
+- dev-luigi-python: Container based on a standard Python Docker image with the Luigi module used to build  pipelines of batch jobs installed during provisioning along with other prerequisites.
+
+- dev-grafana: Container based on a standard Grafana Docker image, with a dashboard called Wells provisioned via Dockerfile.
+
+
+
+
+
 
