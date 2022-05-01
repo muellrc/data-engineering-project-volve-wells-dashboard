@@ -1,3 +1,5 @@
+from ctypes.wintypes import FLOAT
+from datetime import datetime
 from logging import root
 import pandas as pd
 import luigi
@@ -41,10 +43,28 @@ class transform_production_data(luigi.Task):
     def run(self):
 
         with self.input().open() as f:
-            data = pd.read_csv(f, delimiter=";") 
-            data['NPD_WELL_BORE_NAME'] = 'NO ' + data['NPD_WELL_BORE_NAME'].astype(str)
+            
+            original_data = pd.read_csv(f, delimiter=";") 
+            
+            COLUMN_NAMES=['productiontime','wellbore','boreoilvol','boregasvol','borewatvol','flowkind', 'welltype']
+            data = pd.DataFrame(columns=COLUMN_NAMES)
+            data['productiontime'] = pd.to_datetime(original_data['DATEPRD'])
+            data['wellbore'] = 'NO ' + original_data['NPD_WELL_BORE_NAME'].astype(str)
+            data['flowkind'] = original_data['FLOW_KIND'].astype(str)
+            data['welltype'] = original_data['WELL_TYPE'].astype(str)
+
+            #Remove spaces / clean badly formatted data before converting to values float
+            original_data['BORE_OIL_VOL'] = original_data['BORE_OIL_VOL'].str.replace(" ","")
+            original_data['BORE_GAS_VOL'] = original_data['BORE_GAS_VOL'].str.replace(" ","")
+            original_data['BORE_WAT_VOL'] = original_data['BORE_WAT_VOL'].str.replace(" ","")
+
+            data['boreoilvol'] = original_data['BORE_OIL_VOL'].astype(float)
+            data['boregasvol'] = original_data['BORE_GAS_VOL'].astype(float)
+            data['borewatvol'] = original_data['BORE_WAT_VOL'].astype(float)
+
             list_data = data.values.tolist()
             list_header = data.columns.to_list()
+
 
         with self.output().open(mode="w") as f:
             writer = csv.writer(f, delimiter=";")
@@ -71,7 +91,7 @@ class load_data_production(luigi.Task):
                 'production_data',
                 engine,
                 index=False,
-                if_exists='replace'
+                if_exists='append'
             )
 
     def output(self):
@@ -596,40 +616,40 @@ class workflow(luigi.Task):
         luigi.build([load_data_production()])
 
         # Wells
-        luigi.build([load_data_wells()])
+        #luigi.build([load_data_wells()])
 
         # Wellbores
-        luigi.build([load_data_wellbores()])
+        #luigi.build([load_data_wellbores()])
 
         # Datum
-        luigi.build([load_data_datum()])
+        #luigi.build([load_data_datum()])
 
         # Scenario
-        luigi.build([load_data_scenario()])
+        #luigi.build([load_data_scenario()])
 
         # Definitive survey header
-        luigi.build([load_data_definitive_survey_header()])
+        #luigi.build([load_data_definitive_survey_header()])
 
         # Definitive survey station
-        luigi.build([load_data_definitive_survey_station()])
+        #luigi.build([load_data_definitive_survey_station()])
 
         # Survey header
-        luigi.build([load_data_survey_header()])
+        #luigi.build([load_data_survey_header()])
 
         # Survey station
-        luigi.build([load_data_survey_station()])
+        #luigi.build([load_data_survey_station()])
 
         # Assembly
-        luigi.build([load_data_assembly()])
+        #luigi.build([load_data_assembly()])
 
         # Policy
-        luigi.build([load_data_policy()])
+        #luigi.build([load_data_policy()])
 
         # Project
-        luigi.build([load_data_project()])
+       # luigi.build([load_data_project()])
 
         # Site
-        luigi.build([load_data_site()])
+        #luigi.build([load_data_site()])
 
 
 
