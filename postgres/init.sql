@@ -16,6 +16,16 @@ CREATE TABLE drilling_data (
   inclination float
 );
 
+CREATE TABLE wells_data (
+	geo_offset_east float,
+	well_legal_name text,
+	geo_longitude float,
+	wellhead_depth float,
+	geo_latitude float,
+	geo_offset_north float,
+	water_depth float
+);
+
 CREATE TABLE wellbore_data (
 	geo_latitude_ko float,
     geo_longitude_ko float,
@@ -25,19 +35,9 @@ CREATE TABLE wellbore_data (
     geo_offset_north_ko float
 	geo_offset_north_bh float,
 	geo_offset_east_ko float,
-    wellbore_type_id text,
-	wellbore_id text,
 	ko_md float,
-	well_id text,
 	bh_md float,
-	ow_well_uwi text,
 	rig_name text,
 	wellbore_name text,
-	create_date text,	
-	update_date text,
-	is_deviated text,
-	parent_wellbore_id text,
-	well_legal_name text,
-	default_fluid_id text,
-	wellbore_type_policy_id text,
+	well_legal_name text
 );
