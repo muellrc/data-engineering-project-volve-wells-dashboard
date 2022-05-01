@@ -9,12 +9,6 @@ CREATE TABLE production_data (
   welltype text
 );
 
-CREATE TABLE drilling_data (
-  wellbore TEXT,
-  measureddepth float,
-  azimuth float,
-  inclination float
-);
 
 CREATE TABLE wells_data (
 	geo_offset_east float,
@@ -26,7 +20,7 @@ CREATE TABLE wells_data (
 	water_depth float
 );
 
-CREATE TABLE wellbore_data (
+CREATE TABLE wellbores_data (
 	geo_latitude_ko float,
     geo_longitude_ko float,
     geo_latitude_bh float,

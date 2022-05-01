@@ -257,5 +257,4 @@ class workflow(luigi.Task):
         # Wellbores
         luigi.build([load_data_wellbores()])
 
-#http://127.0.0.1:8080/d/aJotvZlnk/wells?orgId=1
 
