@@ -1,5 +1,5 @@
 CREATE TABLE production_data (
-  productiontime datetime,
+  productiontime timestamp,
   wellbore TEXT,
   boreoilvol float,
   boregasvol float,
@@ -26,7 +26,7 @@ CREATE TABLE wellbores_data (
     geo_latitude_bh float,
     geo_longitude_bh float,
     geo_offset_east_bh float,
-    geo_offset_north_ko float
+    geo_offset_north_ko float,
 	geo_offset_north_bh float,
 	geo_offset_east_ko float,
 	ko_md float,
