@@ -24,7 +24,7 @@ To run this project, simply call docker-compose:<br />
 Step 1: docker-compose build <br />
 Step 2: docker-compose up <br />
 Step 3: Monitor the status updates from luigi until the workflow is executed <br />
-Step 4: Open the Grafana dashboard in http://127.0.0.1:8080/d/aJotvZlnk/wells?orgId=1 (admin/admin)
+Step 4: Open the Grafana dashboard in http://127.0.0.1:8080/d/aJotvZlnk/wells?orgId=1
 
 ## Components:
 
