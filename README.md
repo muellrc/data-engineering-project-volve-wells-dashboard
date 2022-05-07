@@ -5,7 +5,7 @@
 
 ## Introduction
 
-The data ingested comes from a XML file containing Technical Well Data (original source: EDM) and Production data from a csv file from an open dataset called Volve Dataset, very commonly used within the Oil & Gas sector and provided by Norwegian public company Equinor. <br />
+The data ingested comes from a XML file containing Technical Well Data (original source: EDM) and Production data from a csv file, both from the [Volve Dataset](https://www.equinor.com/news/archive/14jun2018-disclosing-volve-data), an open dataset which was disclosed in 2018 by Norwegian public company Equinor. <br />
 
 A Batch-based python code, running every day on a docker container and managed by the Luigi package extracts this data and run transformations on it, such as making sure only valid Wells are ingested and cleaning production data measurements. <br />
 
