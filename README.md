@@ -21,10 +21,22 @@ A Docker network is used to ensure security.<br />
 
 To run this project, simply call docker-compose:<br />
 
-Step 1: docker-compose build <br />
-Step 2: docker-compose up <br />
-Step 3: Monitor the status updates from luigi until the workflow is executed <br />
-Step 4: Open the Grafana dashboard in http://127.0.0.1:8080/d/aJotvZlnk/wells?orgId=1
+**Step 1:** docker-compose build <br />
+**Step 2:** docker-compose up <br />
+**Step 3:** Monitor the status updates from luigi until the final workflow is executed and the message is shown:  <br />
+
+```
+===== Luigi Execution Summary =====
+Scheduled 1 tasks of which:
+* 1 ran successfully:
+- 1 workflow()
+This progress looks :) because there were no failed tasks or missing dependencies 
+===== Luigi Execution Summary =====
+```
+<br />
+
+**Step 4:** Open the Grafana dashboard in http://127.0.0.1:8080/d/aJotvZlnk/wells?orgId=1
+
 
 ## Components:
 
