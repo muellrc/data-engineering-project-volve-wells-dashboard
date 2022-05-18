@@ -130,7 +130,7 @@ class extract_edm_data(luigi.Task):
     def run(self):
         # Read source data (EDM Database Export) as one XML file instead of the intermediate files
         filenames = ['app/source-files/VolveF.edm.1.xml', 'app/source-files/VolveF.edm.2.xml', 'app/source-files/VolveF.edm.3.xml',
-                     'app/source-files/VolveF.edm.4.xml', 'app/source-files/VolveF.edm.5.xml', 'app/source-files/VolveF.edm.6.xml']
+                     'app/source-files/VolveF.edm.4.xml']
         with self.output().open(mode="w") as f:
             for fname in filenames:
                 with open(fname) as infile:
