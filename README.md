@@ -38,28 +38,28 @@
        │  • wellbores_data     │
        └───────┬───────────────┘
                │
-       ┌───────┴───────────────┬──────────────────┐
-       │                        │                  │
-       ▼                        ▼                  ▼
-┌──────────────┐      ┌──────────────┐   ┌──────────────┐
-│   Grafana    │      │  MCP Server   │   │  LLM Client  │
-│  Dashboard   │      │               │   │  (Claude/    │
-│              │      │  • 8 Tools    │   │   Cursor)    │
-│ Visualization│      │  • Query API  │   │              │
-│              │      │  • Protocol   │   │ Natural      │
-│ • Wells Map  │      │    Handler    │   │ Language     │
-│ • Production │      └───────┬───────┘   │ Queries      │
-│   Metrics    │              │           └──────┬───────┘
-└──────────────┘              │                  │
-                               │                  │
-                               └────────┬─────────┘
-                                        │
-                                        ▼
-                              ┌─────────────────┐
-                              │  Natural Language│
-                              │  Database Queries│
-                              │  via MCP Protocol│
-                              └─────────────────┘
+       ┌───────┴───────────────┬──────────────────┬──────────────────┐
+       │                        │                  │                  │
+       ▼                        ▼                  ▼                  ▼
+┌──────────────┐      ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
+│   Grafana    │      │  MCP Server   │   │  NLQ Service  │   │  LLM Client  │
+│  Dashboard   │      │               │   │  (REST API)  │   │  (Claude/    │
+│              │      │  • 8 Tools    │   │              │   │   Cursor)    │
+│ Visualization│      │  • Query API  │   │  • NL to SQL │   │              │
+│              │      │  • Protocol   │   │  • Validation│   │ Natural      │
+│ • Wells Map  │      │    Handler    │   │  • Execution │   │ Language     │
+│ • Production │      └───────┬───────┘   └──────┬───────┘   │ Queries      │
+│   Metrics    │              │                  │           └──────┬───────┘
+└──────────────┘              │                  │                  │
+                               │                  │                  │
+                               └──────────┬───────┴──────────────────┘
+                                          │
+                                          ▼
+                              ┌─────────────────────────┐
+                              │  Natural Language       │
+                              │  Database Queries       │
+                              │  via MCP & REST API     │
+                              └─────────────────────────┘
 ```
 
 ## Introduction
@@ -72,7 +72,11 @@ After data transformation, Luigi, the package that manages the python batches wh
 
 For the visualization, a dashboard in Grafana (running on another standard Docker container) shows the Wells, Wellbores and their locations, and the Volumetric Data for Produced Oil, Water & Injected Water previously transformed and stored in the PostgreSQL database.
 
-Additionally, the project includes a **Model Context Protocol (MCP) Server** that enables LLM integration, allowing AI assistants like Claude to query and analyze the Volve wells database through natural language. The MCP server exposes 8 database query tools and can be integrated with LLM clients for interactive data exploration. See the [MCP Server documentation](mcp_server/README.md) for details.
+Additionally, the project includes two AI-powered services for database interaction:
+
+- **Model Context Protocol (MCP) Server**: Enables LLM integration, allowing AI assistants like Claude to query and analyze the Volve wells database through natural language. The MCP server exposes 8 database query tools and can be integrated with LLM clients for interactive data exploration. See the [MCP Server documentation](mcp_server/README.md) and [Learning Guide](mcp_server/LEARNING_GUIDE.md) for details.
+
+- **Natural Language Query (NLQ) Service**: A REST API that converts natural language questions to SQL queries using LLMs, validates them for safety, and executes them against the database. Supports multiple LLM providers (OpenAI, Anthropic, Ollama) and provides query explanations. See the [NLQ Service documentation](nlq_service/README.md) and [Learning Guide](nlq_service/LEARNING_GUIDE.md) for details.
 
 A Docker network is used to ensure security.<br />
 
@@ -136,6 +140,7 @@ The containers will start in the following order:
 2. Grafana dashboard
 3. Luigi Python workflow (waits for PostgreSQL to be ready)
 4. MCP Server (waits for PostgreSQL to be ready)
+5. NLQ Service (waits for PostgreSQL to be ready)
 
 **Step 4:** Monitor the status updates from luigi until the final workflow is executed and the message is shown:
 
@@ -150,7 +155,9 @@ This progress looks :) because there were no failed tasks or missing dependencie
 
 **Step 5:** Open the Grafana dashboard in http://127.0.0.1:8080/d/aJotvZlnk/wells?orgId=1
 
-**Optional - Step 6:** The MCP server is now running and ready to accept connections. You can integrate it with LLM clients like Claude Desktop or Cursor. See the [MCP Server documentation](mcp_server/README.md) for setup instructions.
+**Optional - Step 6:** The AI services are now running:
+- **MCP Server**: Ready to accept connections. You can integrate it with LLM clients like Claude Desktop or Cursor. See the [MCP Server documentation](mcp_server/README.md) for setup instructions.
+- **NLQ Service**: REST API available at http://localhost:8000. You can query the database using natural language. See the [NLQ Service documentation](nlq_service/README.md) for usage examples. **Note**: Set `LLM_API_KEY` environment variable for full functionality.
 
 ### Running in Background (Detached Mode)
 
@@ -190,6 +197,7 @@ If you get an error about ports being in use:
 - **Port 5432 (PostgreSQL):** Check if you have a local PostgreSQL instance running
 - **Port 8080 (Grafana):** Another service might be using this port
 - **Port 8082 (Luigi):** Another service might be using this port
+- **Port 8000 (NLQ Service):** Another service might be using this port
 
 You can change the ports in `docker-compose.yaml` if needed.
 
@@ -206,6 +214,9 @@ You can change the ports in `docker-compose.yaml` if needed.
 - **Grafana Dashboard:** http://127.0.0.1:8080/d/aJotvZlnk/wells?orgId=1
 - **PostgreSQL:** localhost:5432 (username: postgres, password: postgres)
 - **MCP Server:** Running via stdio transport (see [MCP Server README](mcp_server/README.md) for integration instructions)
+- **NLQ Service API:** http://localhost:8000 (see [NLQ Service README](nlq_service/README.md) for API documentation)
+  - Interactive API docs: http://localhost:8000/docs
+  - Health check: http://localhost:8000/health
 
 
 ## Components
@@ -219,6 +230,8 @@ The following containers are used to provide the functionality described above:
 - **dev-grafana:** Container based on Grafana Docker image, with a dashboard called "Wells" provisioned via Dockerfile. Accessible at http://127.0.0.1:8080
 
 - **dev-mcp-server:** Container running the Volve Wells MCP (Model Context Protocol) server, which exposes database query tools for LLM integration. Allows AI assistants like Claude to interact with the Volve wells database through natural language queries. Provides 8 tools for querying production data, well statistics, geographic searches, anomaly detection, and more. See the [MCP Server README](mcp_server/README.md) for detailed documentation and the [Learning Guide](mcp_server/LEARNING_GUIDE.md) for an in-depth explanation of MCP servers.
+
+- **dev-nlq-service:** Container running the Natural Language Query (NLQ) REST API service. Converts natural language questions to SQL queries using LLMs (OpenAI, Anthropic, or Ollama), validates them for safety, and executes them against the database. Provides REST endpoints for easy integration with web applications, mobile apps, or other services. Features SQL validation, query explanations, and support for multiple LLM providers. See the [NLQ Service README](nlq_service/README.md) for detailed documentation and the [Learning Guide](nlq_service/LEARNING_GUIDE.md) for an in-depth explanation of NLQ systems.
 
 
 
