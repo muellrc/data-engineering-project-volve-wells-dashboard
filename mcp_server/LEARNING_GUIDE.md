@@ -812,4 +812,4 @@ By understanding the Volve Wells MCP Server implementation, you've learned how t
 
 ---
 
-*This guide is part of the Volve Wells Dashboard project, demonstrating MCP, LLM, and agentic AI concepts through practical implementation.*
+*This guide is part of the Volve Wells AI Platform project, demonstrating MCP, LLM and agentic AI concepts through practical implementation.*

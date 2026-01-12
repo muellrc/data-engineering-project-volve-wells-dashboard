@@ -1,7 +1,66 @@
-# Data Engineering Project: Volve Wells Dashboard
+# Volve Wells AI Platform: Data Engineering & LLM Integration
 
-<img width="356" src="https://user-images.githubusercontent.com/89973885/166164396-756806d6-d730-4e5b-ba4c-d53a66783949.png">
+## Architecture Diagram
 
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    Volve Wells AI Platform                             │
+│          Data Engineering, Visualization & LLM Integration             │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────┐         ┌──────────────┐
+│   Source     │         │   Source     │
+│   Files      │         │   Files      │
+│              │         │              │
+│ • XML (EDM)  │         │ • CSV        │
+│   Well Data  │         │   Production │
+└──────┬───────┘         └──────┬───────┘
+       │                        │
+       └──────────┬─────────────┘
+                  │
+                  ▼
+       ┌──────────────────────┐
+       │  Luigi Workflow      │
+       │  (ETL Pipeline)      │
+       │                      │
+       │  • Extract           │
+       │  • Transform         │
+       │  • Validate          │
+       └──────────┬───────────┘
+                  │
+                  ▼
+       ┌──────────────────────┐
+       │   PostgreSQL          │
+       │   Database            │
+       │                       │
+       │  • production_data    │
+       │  • wells_data         │
+       │  • wellbores_data     │
+       └───────┬───────────────┘
+               │
+       ┌───────┴───────────────┬──────────────────┐
+       │                        │                  │
+       ▼                        ▼                  ▼
+┌──────────────┐      ┌──────────────┐   ┌──────────────┐
+│   Grafana    │      │  MCP Server   │   │  LLM Client  │
+│  Dashboard   │      │               │   │  (Claude/    │
+│              │      │  • 8 Tools    │   │   Cursor)    │
+│ Visualization│      │  • Query API  │   │              │
+│              │      │  • Protocol   │   │ Natural      │
+│ • Wells Map  │      │    Handler    │   │ Language     │
+│ • Production │      └───────┬───────┘   │ Queries      │
+│   Metrics    │              │           └──────┬───────┘
+└──────────────┘              │                  │
+                               │                  │
+                               └────────┬─────────┘
+                                        │
+                                        ▼
+                              ┌─────────────────┐
+                              │  Natural Language│
+                              │  Database Queries│
+                              │  via MCP Protocol│
+                              └─────────────────┘
+```
 
 ## Introduction
 
@@ -11,9 +70,9 @@ A Batch-based python code, running every day on a docker container and managed b
 
 After data transformation, Luigi, the package that manages the python batches while running on a standard Docker container, writes the transformed data into a PostgreSQL database which is running on another standard Docker container. <br />
 
-For the visualization, a dashboard in Grafana (running on another standard Docker container) shows the Wells, Wellbores and their locations, and the Volumetric Data for Produced Oil, Water & Injected Water previously transformed and stored in the PostgreSQL database:
+For the visualization, a dashboard in Grafana (running on another standard Docker container) shows the Wells, Wellbores and their locations, and the Volumetric Data for Produced Oil, Water & Injected Water previously transformed and stored in the PostgreSQL database.
 
-<img alt="image" src="https://user-images.githubusercontent.com/89973885/166163284-a914ac1c-56a7-462b-a25a-d61c3d54e6dc.png">
+Additionally, the project includes a **Model Context Protocol (MCP) Server** that enables LLM integration, allowing AI assistants like Claude to query and analyze the Volve wells database through natural language. The MCP server exposes 8 database query tools and can be integrated with LLM clients for interactive data exploration. See the [MCP Server documentation](mcp_server/README.md) for details.
 
 A Docker network is used to ensure security.<br />
 
@@ -76,6 +135,7 @@ The containers will start in the following order:
 1. PostgreSQL database (waits until healthy)
 2. Grafana dashboard
 3. Luigi Python workflow (waits for PostgreSQL to be ready)
+4. MCP Server (waits for PostgreSQL to be ready)
 
 **Step 4:** Monitor the status updates from luigi until the final workflow is executed and the message is shown:
 
@@ -89,6 +149,8 @@ This progress looks :) because there were no failed tasks or missing dependencie
 ```
 
 **Step 5:** Open the Grafana dashboard in http://127.0.0.1:8080/d/aJotvZlnk/wells?orgId=1
+
+**Optional - Step 6:** The MCP server is now running and ready to accept connections. You can integrate it with LLM clients like Claude Desktop or Cursor. See the [MCP Server documentation](mcp_server/README.md) for setup instructions.
 
 ### Running in Background (Detached Mode)
 
@@ -143,6 +205,7 @@ You can change the ports in `docker-compose.yaml` if needed.
 ### Accessing the services
 - **Grafana Dashboard:** http://127.0.0.1:8080/d/aJotvZlnk/wells?orgId=1
 - **PostgreSQL:** localhost:5432 (username: postgres, password: postgres)
+- **MCP Server:** Running via stdio transport (see [MCP Server README](mcp_server/README.md) for integration instructions)
 
 
 ## Components
@@ -154,6 +217,8 @@ The following containers are used to provide the functionality described above:
 - **dev-luigi-python:** Container based on Python 3.11 Docker image with the Luigi module used to build pipelines of batch jobs. Includes dependencies: luigi, psycopg2-binary, pandas, sqlalchemy, lxml, and requests. The workflow runs once on container startup and then exits.
 
 - **dev-grafana:** Container based on Grafana Docker image, with a dashboard called "Wells" provisioned via Dockerfile. Accessible at http://127.0.0.1:8080
+
+- **dev-mcp-server:** Container running the Volve Wells MCP (Model Context Protocol) server, which exposes database query tools for LLM integration. Allows AI assistants like Claude to interact with the Volve wells database through natural language queries. Provides 8 tools for querying production data, well statistics, geographic searches, anomaly detection, and more. See the [MCP Server README](mcp_server/README.md) for detailed documentation and the [Learning Guide](mcp_server/LEARNING_GUIDE.md) for an in-depth explanation of MCP servers.
 
 
 
