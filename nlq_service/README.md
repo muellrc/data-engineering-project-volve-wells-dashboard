@@ -238,9 +238,35 @@ export LLM_MODEL=claude-3-5-sonnet-20241022
 
 ### Ollama (Local)
 
+Ollama is included in the docker-compose setup. To use it:
+
+**Option 1: Using Docker Compose (Recommended)**
 ```bash
-# Start Ollama locally
+# Ollama service is already configured in docker-compose.yaml
+# Pull a model first:
+docker exec -it dev-ollama ollama pull llama3.1
+
+# Or pull other models:
+docker exec -it dev-ollama ollama pull mistral
+docker exec -it dev-ollama ollama pull codellama
+
+# Configure NLQ service to use Ollama:
+export LLM_PROVIDER=ollama
+export LLM_MODEL=llama3.1
+export LLM_BASE_URL=http://dev-ollama:11434/v1
+export LLM_API_KEY=ollama  # Not used, but required
+
+# Restart the service
+docker-compose restart dev-nlq-service
+```
+
+**Option 2: Using Local Ollama Installation**
+```bash
+# Start Ollama locally (if installed on host)
 ollama serve
+
+# Pull a model
+ollama pull llama3.1
 
 # Configure service
 export LLM_PROVIDER=ollama
@@ -248,6 +274,15 @@ export LLM_BASE_URL=http://localhost:11434/v1
 export LLM_MODEL=llama3.1
 export LLM_API_KEY=ollama  # Not used, but required
 ```
+
+**Available Models:**
+- `llama3.1` - General purpose, good for SQL generation
+- `llama3.1:8b` - Smaller, faster version
+- `mistral` - Alternative general purpose model
+- `codellama` - Code-focused model, excellent for SQL
+- `neural-chat` - Conversational model
+
+**Note:** First query may be slower as Ollama loads the model into memory. Subsequent queries are faster.
 
 ## Security
 
