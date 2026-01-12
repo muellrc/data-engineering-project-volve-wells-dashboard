@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "volve-wells-database": {
+      "command": "docker",
+      "args": [
+        "exec",
+        "-i",
+        "data-engineering-project-volve-wells-dashboard-dev-mcp-server-1",
+        "python",
+        "-m",
+        "mcp_server.server"
+      ],
+      "env": {}
+    }
+  }
+}
