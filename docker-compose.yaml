@@ -46,6 +46,25 @@ services:
     restart: unless-stopped
     stdin_open: true
     tty: true
+  dev-nlq-service:
+    build:
+      context: ./nlq_service
+    depends_on:
+      dev-postgres-db:
+        condition: service_healthy
+    environment:
+      - DB_HOST=dev-postgres-db
+      - DB_PORT=5432
+      - DB_NAME=postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - LLM_PROVIDER=${LLM_PROVIDER:-openai}
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - LLM_MODEL=${LLM_MODEL:-gpt-4o-mini}
+      - LLM_BASE_URL=${LLM_BASE_URL:-}
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
 volumes:
   postgres-data:
   grafana-storage:
