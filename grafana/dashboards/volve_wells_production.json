@@ -157,7 +157,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT\nto_timestamp(productiontime, 'YYYY-MM-DD hh24:mi:ss') AS time,\nborewatvol as \"Water Produced\",\nboreoilvol as \"Oil Produced\",\nborewivol as \"Water Injected\"\nFROM production_data\nORDER BY 1,2",
+          "rawSql": "SELECT time, \"Water Produced\", \"Oil Produced\", \"Water Injected\"\nFROM (\n  SELECT to_timestamp(productiontime, 'YYYY-MM-DD hh24:mi:ss') AS time,\n  borewatvol as \"Water Produced\",\n  boreoilvol as \"Oil Produced\",\n  borewivol as \"Water Injected\"\n  FROM production_data\n) subq\nWHERE $__timeFilter(time)\nORDER BY time",
           "refId": "A",
           "select": [
             [
@@ -169,14 +169,7 @@
               }
             ]
           ],
-          "timeColumn": "time",
-          "where": [
-            {
-              "name": "$__timeFilter",
-              "params": [],
-              "type": "macro"
-            }
-          ]
+          "timeColumn": "time"
         }
       ],
       "title": "Volumetric Data for Produced Oil, Water & Injected Water",
@@ -266,7 +259,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT\nto_timestamp(productiontime, 'YYYY-MM-DD hh24:mi:ss') AS time,\nboregasvol \"Gas Volume\"\nFROM production_data\nORDER BY 1,2",
+          "rawSql": "SELECT time, \"Gas Volume\"\nFROM (\n  SELECT to_timestamp(productiontime, 'YYYY-MM-DD hh24:mi:ss') AS time,\n  boregasvol \"Gas Volume\"\n  FROM production_data\n) subq\nWHERE $__timeFilter(time)\nORDER BY time",
           "refId": "A",
           "select": [
             [
@@ -278,14 +271,7 @@
               }
             ]
           ],
-          "timeColumn": "time",
-          "where": [
-            {
-              "name": "$__timeFilter",
-              "params": [],
-              "type": "macro"
-            }
-          ]
+          "timeColumn": "time"
         }
       ],
       "title": "Volumetric Data for Produced Gas",
