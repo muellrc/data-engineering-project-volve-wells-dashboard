@@ -22,15 +22,6 @@ An **MCP Server** is a program that:
 - Communicates using the **MCP protocol** (JSON-RPC over stdio or HTTP)
 - Acts as a **bridge** between the LLM and your application/data
 
-### Real-World Analogy
-
-Think of an MCP server like a **restaurant menu and waiter system**:
-
-- **The Menu (Tools)**: Lists all available dishes (functions) you can order
-- **The Waiter (MCP Server)**: Takes your order, communicates with the kitchen, and brings back your food
-- **The Customer (LLM)**: Can only order what's on the menu, but doesn't need to know how the kitchen works
-- **The Kitchen (Your Application)**: Does the actual work (queries database, processes data, etc.)
-
 The LLM doesn't need to know SQL, database connections, or your business logic—it just needs to know what tools are available and how to call them.
 
 ---
@@ -413,6 +404,181 @@ dev-mcp-server:
 - `stdin_open: true` - Allows stdio communication
 - `tty: true` - Allocates pseudo-TTY
 - `depends_on` - Ensures database is ready
+
+---
+
+## Technical Implementation Details
+
+### Technology Stack
+
+**Core Dependencies:**
+- `mcp` (v1.25.0): Official MCP Python SDK providing Server class, stdio transport, and protocol types
+- `sqlalchemy` (v2.0.45): ORM and database abstraction layer for PostgreSQL connections
+- `psycopg2-binary` (v2.9.11): PostgreSQL adapter for Python, binary distribution for easier deployment
+- `python-dotenv` (v1.2.1): Environment variable management
+
+**Python Version:** 3.11 (slim Docker image)
+
+### MCP Protocol Implementation
+
+**Server Initialization:**
+```python
+from mcp.server import Server
+from mcp.server.stdio import stdio_server
+
+app = Server("volve-wells-database")
+```
+
+The `Server` class from `mcp.server` handles JSON-RPC 2.0 protocol communication. Server name "volve-wells-database" is used in protocol negotiation and logging.
+
+**Transport Layer:**
+- Uses `stdio_server()` from `mcp.server.stdio` for standard input/output communication
+- Implements async context manager pattern: `async with stdio_server() as (read_stream, write_stream)`
+- Reads JSON-RPC messages from stdin, writes responses to stdout
+- No network ports required, works through process pipes
+
+**Protocol Handlers:**
+- `@app.list_tools()` decorator registers handler for `tools/list` JSON-RPC method
+- `@app.call_tool()` decorator registers handler for `tools/call` JSON-RPC method
+- Handlers are async functions returning typed results (`ListToolsResult`, `CallToolResult`)
+
+### Database Connection Architecture
+
+**Connection Pooling:**
+```python
+from sqlalchemy import create_engine
+
+engine = create_engine(
+    f"postgresql://{user}:{password}@{host}:{port}/{database}",
+    pool_size=5,
+    max_overflow=10
+)
+```
+
+SQLAlchemy's `create_engine` creates a connection pool. Default pool size is 5 connections, with overflow up to 10. Connections are reused across tool invocations, reducing overhead.
+
+**Query Execution Pattern:**
+```python
+from sqlalchemy import text
+
+with self.get_connection() as conn:
+    result = conn.execute(text(query), params or {})
+    columns = result.keys()
+    rows = result.fetchall()
+    return [dict(zip(columns, row)) for row in rows]
+```
+
+Uses SQLAlchemy's `text()` constructor for raw SQL with parameter binding. Results are converted to list of dictionaries for JSON serialization. Context manager ensures connection cleanup.
+
+**Parameterized Queries:**
+All queries use named parameters (`:param_name`) to prevent SQL injection:
+```python
+query = "SELECT * FROM production_data WHERE wellbore = :wellbore_name"
+params = {"wellbore_name": user_input}
+```
+
+SQLAlchemy's parameter binding handles type conversion and escaping automatically.
+
+### Tool Definition Structure
+
+**Tool Schema (JSON Schema):**
+```python
+Tool(
+    name="query_production_data",
+    description="...",
+    inputSchema={
+        "type": "object",
+        "properties": {
+            "wellbore_name": {
+                "type": "string",
+                "description": "..."
+            }
+        }
+    }
+)
+```
+
+Tools use JSON Schema for input validation. The `Tool` class from `mcp.types` serializes to MCP protocol format. Descriptions are critical—LLMs use them to select appropriate tools.
+
+**Tool Handler Pattern:**
+```python
+async def handle_query_production_data(arguments: Dict[str, Any]) -> List[TextContent]:
+    db = get_db_manager()
+    # Build query with parameters
+    results = db.execute_query(query, params)
+    return [TextContent(type="text", text=json.dumps(results, default=str))]
+```
+
+All handlers are async functions accepting `Dict[str, Any]` and returning `List[TextContent]`. Results are JSON-serialized strings wrapped in `TextContent` objects for MCP protocol compliance.
+
+### Error Handling
+
+**MCP Error Codes:**
+```python
+from mcp import McpError
+from mcp.types import METHOD_NOT_FOUND, INTERNAL_ERROR
+
+raise McpError(METHOD_NOT_FOUND, "Tool not found")
+raise McpError(INTERNAL_ERROR, "Execution failed")
+```
+
+Uses MCP-defined error codes from `mcp.types`. `McpError` is raised for protocol-compliant error responses. Error messages are included in JSON-RPC error objects.
+
+**Exception Handling:**
+Tool handlers wrap database operations in try-except blocks. Database exceptions are caught and re-raised as `McpError` with `INTERNAL_ERROR` code. This ensures protocol compliance even on failures.
+
+### Async Architecture
+
+**Async/Await Pattern:**
+- All tool handlers are `async def` functions
+- Database operations use async context managers
+- MCP server uses asyncio event loop for concurrent request handling
+
+**Concurrency:**
+The MCP server can handle multiple tool calls concurrently. Each tool execution is independent, allowing parallel database queries when multiple tools are called simultaneously.
+
+### Docker Configuration
+
+**Container Setup:**
+- Base image: `python:3.11-slim` (Debian-based, minimal size)
+- Working directory: `/app`
+- Environment variables: Database connection parameters, PYTHONPATH
+- Command: `python -m mcp_server.server` (runs as module for proper imports)
+
+**Stdio Configuration:**
+- `stdin_open: true` in docker-compose enables stdin reading
+- `tty: true` allocates pseudo-TTY for proper stdio handling
+- No port mapping required (stdio transport)
+
+### Performance Considerations
+
+**Connection Reuse:**
+Database connections are pooled and reused. Connection pool is created once at module import, shared across all tool invocations.
+
+**Query Optimization:**
+- All queries use LIMIT clauses to prevent large result sets
+- Default limit of 100 rows, maximum 1000 rows enforced
+- Indexed columns (well_legal_name, wellbore_name) used in WHERE clauses
+
+**JSON Serialization:**
+Results are serialized using `json.dumps()` with `default=str` for datetime handling. Large result sets may impact serialization time—limits prevent excessive data transfer.
+
+### Security Implementation
+
+**SQL Injection Prevention:**
+- All user inputs passed as parameters, never concatenated into SQL
+- SQLAlchemy's parameter binding handles escaping
+- No dynamic SQL construction from user input
+
+**Read-Only Access:**
+- Tool handlers only execute SELECT queries
+- No INSERT, UPDATE, DELETE operations exposed
+- Database user should have read-only permissions in production
+
+**Input Validation:**
+- JSON Schema validates tool arguments before handler execution
+- Type checking ensures parameters match expected types
+- Optional parameters have default values
 
 ---
 

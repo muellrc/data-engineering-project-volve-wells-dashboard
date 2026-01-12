@@ -16,16 +16,6 @@
 
 A **Natural Language Query (NLQ) Interface** is a system that allows users to query databases using everyday language instead of SQL. It uses Large Language Models (LLMs) to convert questions like "What wells produced the most oil?" into SQL queries, executes them, and returns results in a user-friendly format.
 
-### Real-World Analogy
-
-Think of an NLQ interface like a **translator and assistant**:
-
-- **You (User)**: Ask questions in plain English
-- **The Translator (LLM)**: Converts your question to SQL (the database's language)
-- **The Safety Inspector (Validator)**: Checks the SQL is safe to run
-- **The Database**: Executes the query and returns data
-- **The Assistant (API)**: Formats and explains the results
-
 Instead of learning SQL, you can just ask: "Show me the top 10 wells by production" and get results!
 
 ---
@@ -388,6 +378,239 @@ dev-nlq-service:
 - Environment variables for configuration
 - Port mapping for API access
 - Dependency on PostgreSQL
+
+---
+
+## Technical Implementation Details
+
+### Technology Stack
+
+**Core Dependencies:**
+- `fastapi` (v0.104.0): ASGI web framework for REST API, automatic OpenAPI documentation
+- `uvicorn[standard]` (v0.24.0): ASGI server implementation with standard extras (uvloop, httptools)
+- `sqlalchemy` (v2.0.45): Database ORM and connection pooling
+- `psycopg2-binary` (v2.9.11): PostgreSQL database adapter
+- `openai` (v1.0.0+): OpenAI API client library
+- `anthropic` (v0.18.0+): Anthropic Claude API client
+- `pydantic` (v2.0.0+): Data validation using Python type annotations
+
+**Python Version:** 3.11 (slim Docker image)
+
+### FastAPI Application Architecture
+
+**Application Initialization:**
+```python
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI(
+    title="Volve Wells Natural Language Query API",
+    version="0.1.0"
+)
+app.add_middleware(CORSMiddleware, allow_origins=["*"])
+```
+
+FastAPI uses ASGI (Asynchronous Server Gateway Interface) for async request handling. CORS middleware enables cross-origin requests for web integration. Automatic OpenAPI schema generation at `/docs` endpoint.
+
+**Request/Response Models:**
+```python
+from pydantic import BaseModel, Field
+
+class QueryRequest(BaseModel):
+    question: str = Field(..., description="Natural language question")
+    include_explanation: bool = Field(True)
+    max_results: int = Field(100, ge=1, le=1000)
+```
+
+Pydantic models provide automatic request validation, type conversion, and OpenAPI schema generation. Field constraints (`ge`, `le`) enforce business rules at API boundary.
+
+### LLM Client Implementation
+
+**Multi-Provider Architecture:**
+```python
+class LLMProvider(str, Enum):
+    OPENAI = "openai"
+    ANTHROPIC = "anthropic"
+    OLLAMA = "ollama"
+```
+
+Enum-based provider selection. Each provider has separate initialization method (`_init_openai`, `_init_anthropic`, `_init_ollama`). Ollama uses OpenAI-compatible API wrapper for code reuse.
+
+**OpenAI Client:**
+```python
+from openai import OpenAI
+self.client = OpenAI(api_key=self.api_key, base_url=self.base_url)
+```
+
+Uses `openai` library v1.0+ with structured client API. `base_url` parameter enables custom endpoints (e.g., Ollama at `http://localhost:11434/v1`). API key from environment variable.
+
+**Anthropic Client:**
+```python
+from anthropic import Anthropic
+self.client = Anthropic(api_key=self.api_key)
+```
+
+Anthropic SDK uses different API structure. Messages API (`client.messages.create()`) instead of chat completions. System prompts passed separately, not in messages array.
+
+**Ollama Client:**
+```python
+from openai import OpenAI
+base_url = self.base_url or "http://localhost:11434/v1"
+self.client = OpenAI(api_key="ollama", base_url=base_url)
+```
+
+Ollama provides OpenAI-compatible API endpoints, allowing reuse of OpenAI client library. Default base URL is `http://localhost:11434/v1` (Ollama's OpenAI-compatible endpoint). When using Docker Compose, use `http://dev-ollama:11434/v1` for internal communication. API key is not validated by Ollama but required by client library. Supports local models like `llama3.1`, `mistral`, `codellama` for privacy-sensitive deployments and cost reduction.
+
+**SQL Generation Method:**
+```python
+def generate_sql(self, natural_language_query: str, schema_context: str) -> Dict[str, Any]:
+    system_prompt = self._build_system_prompt(schema_context)
+    user_prompt = f"Convert this question to SQL: {natural_language_query}"
+    
+    response = self.client.chat.completions.create(
+        model=self.model,
+        messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}],
+        temperature=0.1
+    )
+```
+
+Temperature set to 0.1 for deterministic SQL generation. System prompt includes database schema (RAG pattern). Response parsed as JSON when possible, falls back to plain text extraction.
+
+**Prompt Engineering:**
+System prompt structure:
+1. Role definition ("You are a SQL query generator")
+2. Database schema (formatted table/column information)
+3. Rules (only SELECT, use exact names, PostgreSQL syntax)
+4. Optional few-shot examples
+
+Schema context generated from `information_schema.columns` query, formatted as readable text for LLM consumption.
+
+### SQL Validation Implementation
+
+**Validation Layers:**
+```python
+class SQLValidator:
+    DANGEROUS_KEYWORDS = ['DROP', 'DELETE', 'TRUNCATE', ...]
+    
+    @staticmethod
+    def validate_query(query: str) -> Tuple[bool, Optional[str]]:
+        # 1. Empty check
+        # 2. SELECT-only enforcement
+        # 3. Keyword filtering (word boundaries)
+        # 4. Pattern detection (regex)
+        # 5. Syntax validation (parentheses)
+```
+
+Multi-layer validation approach:
+- **Keyword Filtering**: Uses regex word boundaries (`\b`) to avoid false positives (e.g., "SELECT" in "SELECTED" won't match)
+- **Pattern Detection**: Regex patterns for SQL injection attempts (`; DROP`, `UNION SELECT`, etc.)
+- **Syntax Check**: Basic parentheses balancing
+
+**Sanitization:**
+```python
+def sanitize_query(query: str) -> str:
+    query = re.sub(r'--.*$', '', query, flags=re.MULTILINE)  # Remove comments
+    query = re.sub(r'/\*.*?\*/', '', query, flags=re.DOTALL)  # Remove block comments
+    query = ' '.join(query.split())  # Normalize whitespace
+```
+
+Removes SQL comments (single-line `--` and multi-line `/* */`). Normalizes whitespace to single spaces. Does not modify SQL logic, only formatting.
+
+### Database Schema Context Generation
+
+**Schema Retrieval:**
+```python
+def get_database_schema_context(self) -> str:
+    tables = self.get_all_tables()
+    schema_parts = []
+    for table in tables:
+        columns = self.get_table_schema(table)
+        # Format as: "Table: table_name\n  - column: type (nullable)\n"
+```
+
+Queries `information_schema.columns` for each table. Formats as structured text for LLM consumption. Includes column names, data types, and nullability. Acts as RAG (Retrieval Augmented Generation) context.
+
+**Schema Query:**
+```sql
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_name = :table_name
+ORDER BY ordinal_position
+```
+
+Uses PostgreSQL's information schema. `ordinal_position` ensures columns listed in table definition order. Parameterized query prevents injection.
+
+### API Endpoint Implementation
+
+**Query Endpoint:**
+```python
+@app.post("/query", response_model=QueryResponse)
+async def execute_natural_language_query(request: QueryRequest):
+    # 1. Get schema context
+    schema_context = db_manager.get_database_schema_context()
+    
+    # 2. Generate SQL
+    llm_result = llm_client.generate_sql(request.question, schema_context)
+    generated_sql = llm_result["sql"]
+    
+    # 3. Validate SQL
+    is_valid, error = sql_validator.validate_query(generated_sql)
+    
+    # 4. Sanitize and execute
+    sanitized_sql = sql_validator.sanitize_query(generated_sql)
+    results = db_manager.execute_query(sanitized_sql)
+```
+
+Async endpoint handles full workflow. Error handling at each step returns appropriate HTTP status codes. Execution time tracked for performance monitoring.
+
+**Error Handling:**
+- 400 Bad Request: Invalid SQL generated or validation failed
+- 500 Internal Server Error: LLM API errors, database connection issues
+- 503 Service Unavailable: Health check failures
+
+### Performance Optimization
+
+**Connection Pooling:**
+SQLAlchemy connection pool reused across requests. Default pool size 5, overflow 10. Connections persist for request lifetime, reducing connection overhead.
+
+**Query Limits:**
+- Default limit: 100 rows
+- Maximum limit: 1000 rows (enforced by Pydantic validation)
+- LIMIT clause automatically appended if not present
+
+**LLM Response Caching:**
+Not implemented in current version. Future optimization: cache SQL generation results for identical questions.
+
+### Security Implementation
+
+**SQL Injection Prevention:**
+- All database queries use SQLAlchemy parameter binding
+- No string concatenation for SQL construction
+- Input validation via Pydantic models
+- SQL validator blocks dangerous operations
+
+**API Security:**
+- CORS configured (currently permissive, should be restricted in production)
+- No authentication implemented (add API keys or OAuth for production)
+- Rate limiting not implemented (add middleware for production)
+
+**LLM API Key Management:**
+- API keys stored in environment variables
+- Never logged or exposed in responses
+- Optional feature (service works without LLM for validation-only)
+
+### Docker Configuration
+
+**Container Setup:**
+- Base: `python:3.11-slim`
+- Port: 8000 (mapped to host)
+- Environment: Database and LLM configuration
+- Command: `uvicorn api:app --host 0.0.0.0 --port 8000`
+
+**Uvicorn Configuration:**
+- ASGI server with auto-reload disabled (production mode)
+- Host `0.0.0.0` binds to all interfaces
+- Standard workers (single process, can add workers for scaling)
 
 ---
 
