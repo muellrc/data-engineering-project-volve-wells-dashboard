@@ -31,6 +31,21 @@ services:
         - dev-postgres-db
       volumes:
         - grafana-storage:/var/lib/grafana
+  dev-mcp-server:
+    build:
+      context: ./mcp_server
+    depends_on:
+      dev-postgres-db:
+        condition: service_healthy
+    environment:
+      - DB_HOST=dev-postgres-db
+      - DB_PORT=5432
+      - DB_NAME=postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
 volumes:
   postgres-data:
   grafana-storage:
