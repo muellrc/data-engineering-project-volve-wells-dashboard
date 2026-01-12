@@ -1,6 +1,6 @@
-FROM python
+FROM python:3.11
 RUN pip install luigi
-RUN pip install psycopg2==2.9.3
+RUN pip install psycopg2-binary==2.9.3
 RUN pip install pandas
 RUN pip install sqlalchemy
 RUN pip install lxml

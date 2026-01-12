@@ -1,25 +1,29 @@
-version: "3.9"
 services:
   dev-postgres-db:
-    image: postgres
+    image: postgres:15
     ports:
     - 5432:5432
     environment:
     - POSTGRES_PASSWORD=postgres
     volumes:
-    - type: volume
-      source: postgres-data
-      target: /var/lib/postgresql/data
+    - postgres-data:/var/lib/postgresql/data
     - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
   dev-luigi-python:
     build: python
     ports:
     - 8082:8082
     depends_on:
-      - dev-postgres-db
+      dev-postgres-db:
+        condition: service_healthy
     restart: on-failure
   dev-grafana:
-      image: grafana/grafana
+      build:
+        context: ./grafana
       restart: always
       ports:
         - "8080:3000"
@@ -27,8 +31,6 @@ services:
         - dev-postgres-db
       volumes:
         - grafana-storage:/var/lib/grafana
-      build:
-        context: ./grafana
 volumes:
   postgres-data:
   grafana-storage:
