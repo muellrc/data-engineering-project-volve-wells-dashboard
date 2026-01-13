@@ -38,29 +38,32 @@
        │  • wellbores_data     │
        └───────┬───────────────┘
                │
-       ┌───────┴───────────────┬──────────────────┬──────────────────┬──────────────────┐
-       │                        │                  │                  │                  │
-       ▼                        ▼                  ▼                  ▼                  ▼
-┌──────────────┐      ┌──────────────┐   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
-│   Grafana    │      │  MCP Server   │   │  NLQ Service  │   │ Data Quality │   │  LLM Client  │
-│  Dashboard   │      │               │   │  (REST API)  │   │    Agent     │   │  (Claude/    │
-│              │      │  • 8 Tools    │   │              │   │  (Agentic AI)│   │   Cursor)    │
-│ Visualization│      │  • Query API  │   │  • NL to SQL │   │              │   │              │
-│              │      │  • Protocol   │   │  • Validation│   │  • Monitoring│   │ Natural      │
-│ • Wells Map  │      │    Handler    │   │  • Execution │   │  • Reasoning │   │ Language     │
-│ • Production │      └───────┬───────┘   └──────┬───────┘   │  • Reports   │   │ Queries      │
-│   Metrics    │              │                  │           └──────┬───────┘   └──────┬───────┘
-└──────────────┘              │                  │                  │                  │
-                               │                  │                  │                  │
-                               └──────────┬───────┴──────────────────┴──────────────────┘
-                                          │
-                                          ▼
-                              ┌───────────────────────────────┐
-                              │  AI-Powered Data Services    │
-                              │  • Natural Language Queries   │
-                              │  • Autonomous Quality Monitoring│
-                              │  • Intelligent Analysis      │
-                              └───────────────────────────────┘
+       ┌───────┴───────────────┬──────────────────┬──────────────────┬──────────────────┬──────────────────┐
+       │                        │                  │                  │                  │                  │
+       ▼                        ▼                  ▼                  ▼                  ▼                  ▼
+┌──────────────┐      ┌──────────────┐   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
+│   Grafana    │      │  MCP Server   │   │  NLQ Service  │   │ Data Quality │   │ Predictive   │   │  LLM Client  │
+│  Dashboard   │      │               │   │  (REST API)  │   │    Agent     │   │ Maintenance  │   │  (Claude/    │
+│              │      │  • 8 Tools    │   │              │   │  (Agentic AI)│   │    Agent     │   │   Cursor)    │
+│ Visualization│      │  • Query API  │   │  • NL to SQL │   │              │   │ (Advanced    │   │              │
+│              │      │  • Protocol   │   │  • Validation│   │  • Monitoring│   │  Agentic AI) │   │ Natural      │
+│ • Wells Map  │      │    Handler    │   │  • Execution │   │  • Reasoning │   │              │   │ Language     │
+│ • Production │      └───────┬───────┘   └──────┬───────┘   │  • Reports   │   │  • Predictive│   │ Queries      │
+│   Metrics    │              │                  │           └──────┬───────┘   │  • Scheduling│   └──────┬───────┘
+└──────────────┘              │                  │                  │           │  • SAP PM    │          │
+                               │                  │                  │           │    Simulation│          │
+                               │                  │                  │           └──────┬───────┘          │
+                               │                  │                  │                  │                  │
+                               └──────────────────┴──────────────────┴──────────────────┴──────────────────┘
+                                                          │
+                                                          ▼
+                                          ┌───────────────────────────────┐
+                                          │  AI-Powered Data Services    │
+                                          │  • Natural Language Queries   │
+                                          │  • Autonomous Quality Monitoring│
+                                          │  • Predictive Maintenance    │
+                                          │  • Intelligent Analysis      │
+                                          └───────────────────────────────┘
 ```
 
 ## Introduction
@@ -73,13 +76,15 @@ After data transformation, Luigi, the package that manages the python batches wh
 
 For the visualization, a dashboard in Grafana (running on another standard Docker container) shows the Wells, Wellbores and their locations, and the Volumetric Data for Produced Oil, Water & Injected Water previously transformed and stored in the PostgreSQL database.
 
-Additionally, the project includes three AI-powered services for database interaction and data quality:
+Additionally, the project includes four AI-powered services for database interaction, data quality, and predictive maintenance:
 
 - **Model Context Protocol (MCP) Server**: Enables LLM integration, allowing AI assistants like Claude to query and analyze the Volve wells database through natural language. The MCP server exposes 8 database query tools and can be integrated with LLM clients for interactive data exploration. See the [MCP Server documentation](mcp_server/README.md) and [Learning Guide](mcp_server/LEARNING_GUIDE.md) for details.
 
 - **Natural Language Query (NLQ) Service**: A REST API that converts natural language questions to SQL queries using LLMs, validates them for safety, and executes them against the database. Supports multiple LLM providers (OpenAI, Anthropic, Ollama) and provides query explanations. See the [NLQ Service documentation](nlq_service/README.md) and [Learning Guide](nlq_service/LEARNING_GUIDE.md) for details.
 
 - **Intelligent Data Quality Agent**: An autonomous agentic AI system that monitors data quality, investigates issues using reasoning and tools, and generates comprehensive reports with actionable recommendations. Uses LLMs for root cause analysis and combines automated checks with intelligent investigation. See the [Data Quality Agent documentation](data_quality_agent/README.md) and [Learning Guide](data_quality_agent/LEARNING_GUIDE.md) for details.
+
+- **Predictive Maintenance Agent**: An advanced agentic AI system that analyzes production data patterns to predict maintenance needs and automatically creates maintenance work orders. Simulates SAP Plant Maintenance integration by storing work orders in a database table. Uses predictive models (decline detection, anomaly detection, equipment age analysis) combined with LLM reasoning for strategic maintenance planning. See the [Predictive Maintenance Agent documentation](predictive_maintenance_agent/README.md) and [Learning Guide](predictive_maintenance_agent/LEARNING_GUIDE.md) for details.
 
 A Docker network is used to ensure security.<br />
 
@@ -146,6 +151,7 @@ The containers will start in the following order:
 5. MCP Server (waits for PostgreSQL to be ready)
 6. NLQ Service (waits for PostgreSQL and Ollama to be ready)
 7. Data Quality Agent (waits for PostgreSQL and Ollama to be ready)
+8. Predictive Maintenance Agent (waits for PostgreSQL and Ollama to be ready)
 
 **Step 4:** Monitor the status updates from luigi until the final workflow is executed and the message is shown:
 
@@ -164,6 +170,7 @@ This progress looks :) because there were no failed tasks or missing dependencie
 - **MCP Server**: Ready to accept connections. You can integrate it with LLM clients like Claude Desktop or Cursor. See the [MCP Server documentation](mcp_server/README.md) for setup instructions.
 - **NLQ Service**: REST API available at http://localhost:8000. You can query the database using natural language. See the [NLQ Service documentation](nlq_service/README.md) for usage examples. **Note**: Set `LLM_API_KEY` environment variable for OpenAI/Anthropic, or use `LLM_PROVIDER=ollama` for local models.
 - **Data Quality Agent**: REST API available at http://localhost:8001. Monitors data quality autonomously and generates reports. See the [Data Quality Agent documentation](data_quality_agent/README.md) for usage examples. **Note**: Set `LLM_API_KEY` for OpenAI/Anthropic, or use `LLM_PROVIDER=ollama` for local models.
+- **Predictive Maintenance Agent**: REST API available at http://localhost:8003. Analyzes production data to predict maintenance needs and creates work orders. See the [Predictive Maintenance Agent documentation](predictive_maintenance_agent/README.md) for usage examples. **Note**: Set `LLM_API_KEY` for OpenAI/Anthropic, or use `LLM_PROVIDER=ollama` for local models.
 - **Ollama Service**: Local LLM service available at http://localhost:11434. Supports models like llama3.1, mistral, and others. To use Ollama, set `LLM_PROVIDER=ollama` and `LLM_MODEL=<model-name>` (e.g., `llama3.1`). Pull models with: `docker exec -it <container-name> ollama pull llama3.1`
 
 ### Running in Background (Detached Mode)
@@ -206,6 +213,7 @@ If you get an error about ports being in use:
 - **Port 8082 (Luigi):** Another service might be using this port
 - **Port 8000 (NLQ Service):** Another service might be using this port
 - **Port 8001 (Data Quality Agent):** Another service might be using this port
+- **Port 8003 (Predictive Maintenance Agent):** Another service might be using this port
 - **Port 11434 (Ollama):** Another Ollama instance might be running locally
 
 You can change the ports in `docker-compose.yaml` if needed.
@@ -229,6 +237,9 @@ You can change the ports in `docker-compose.yaml` if needed.
 - **Data Quality Agent API:** http://localhost:8001 (see [Data Quality Agent README](data_quality_agent/README.md) for API documentation)
   - Interactive API docs: http://localhost:8001/docs
   - Health check: http://localhost:8001/health
+- **Predictive Maintenance Agent API:** http://localhost:8003 (see [Predictive Maintenance Agent README](predictive_maintenance_agent/README.md) for API documentation)
+  - Interactive API docs: http://localhost:8003/docs
+  - Health check: http://localhost:8003/health
 - **Ollama Service:** http://localhost:11434 (local LLM server, OpenAI-compatible API)
   - Pull models: `docker exec -it dev-ollama ollama pull llama3.1`
   - List models: `docker exec -it dev-ollama ollama list`
@@ -251,7 +262,9 @@ The following containers are used to provide the functionality described above:
 
 - **dev-data-quality-agent:** Container running the Intelligent Data Quality Agent, an autonomous agentic AI system that monitors data quality, investigates issues using reasoning and tools, and generates comprehensive reports. Combines automated quality checks (missing values, duplicates, data freshness, value ranges, referential integrity) with LLM-powered root cause analysis and actionable recommendations. Demonstrates agentic AI patterns including tool use, autonomous reasoning, and multi-step problem solving. See the [Data Quality Agent README](data_quality_agent/README.md) for detailed documentation and the [Learning Guide](data_quality_agent/LEARNING_GUIDE.md) for an in-depth explanation of agentic AI systems.
 
-- **dev-ollama:** Container running Ollama, a local LLM server that provides OpenAI-compatible API endpoints. Supports running open-source models like llama3.1, mistral, and others locally without requiring external API keys. Accessible at http://localhost:11434. The NLQ Service and Data Quality Agent can use Ollama by setting `LLM_PROVIDER=ollama` and `LLM_MODEL=<model-name>`. Models can be pulled using: `docker exec -it dev-ollama ollama pull llama3.1`. This enables privacy-sensitive deployments and reduces API costs for development and testing.
+- **dev-predictive-maintenance-agent:** Container running the Predictive Maintenance Agent, an advanced agentic AI system that analyzes production data patterns to predict maintenance needs and automatically creates maintenance work orders. Simulates SAP Plant Maintenance integration by storing work orders in a database table. Uses predictive models (production decline detection, anomaly detection, equipment age analysis) combined with LLM reasoning for strategic maintenance planning. Demonstrates advanced agentic AI patterns including predictive analytics, autonomous scheduling, and enterprise system integration simulation. See the [Predictive Maintenance Agent README](predictive_maintenance_agent/README.md) for detailed documentation and the [Learning Guide](predictive_maintenance_agent/LEARNING_GUIDE.md) for an in-depth explanation of predictive maintenance and advanced agentic AI systems.
+
+- **dev-ollama:** Container running Ollama, a local LLM server that provides OpenAI-compatible API endpoints. Supports running open-source models like llama3.1, mistral, and others locally without requiring external API keys. Accessible at http://localhost:11434. The NLQ Service, Data Quality Agent, and Predictive Maintenance Agent can use Ollama by setting `LLM_PROVIDER=ollama` and `LLM_MODEL=<model-name>`. Models can be pulled using: `docker exec -it dev-ollama ollama pull llama3.1`. This enables privacy-sensitive deployments and reduces API costs for development and testing.
 
 
 
